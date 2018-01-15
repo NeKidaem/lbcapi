@@ -6,14 +6,14 @@ from setuptools import setup
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
-    name='lbcapi',
-    version='1.0.1',
-    packages=['lbcapi'],
-    include_package_data=True,
-    license='MIT License',
-    description='Make API calls to LocalBitcoins API.',
-    author='LocalBitcoins Oy',
-    url='https://github.com/LocalBitcoins/lbcapi',
+    name = 'lbcapi',
+    version = '1.0.2',
+    packages = ['lbcapi'],
+    include_package_data = True,
+    license = 'MIT License',
+    description = 'Make API calls to LocalBitcoins API.',
+    author = 'MarcoRacer',
+    url = 'https://github.com/marcoracer/lbcapi',
     install_requires=[
         'requests',
     ],
