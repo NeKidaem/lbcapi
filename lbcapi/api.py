@@ -39,7 +39,7 @@ class Connection():
 		self.hmac_key = None
 		self.hmac_secret = None
 
-	def call(self, method, url, params=None, stream=False, files=None, all_pages=False):
+	def call(self, method, url, params=None, stream=False, files=None, retry=10, all_pages=False):
 		method = method.upper()
 		if method not in ['GET', 'POST']:
 			raise Exception(u'Invalid method {}!'.format(method))
@@ -77,10 +77,10 @@ class Connection():
 				self.__last_response = requests.post(self.server + url, data=params, headers=headers, stream=stream, files=files)
 
 		# If HMAC
-		elif self.hmac_key:
-
+		else:
+			session = requests.Session()
 			# Loop, so retrying is possible if nonce fails
-			while True:
+			while retry > 0:
 
 				# .encode('ascii') ensures a bytestring on Python 2.7 and 3.x
 				nonce = str(int(time.time() * 1000)).encode('ascii')
@@ -97,48 +97,41 @@ class Connection():
 
 				# Calculate signature
 				# .encode('ascii') ensures a bytestring on Python 2.7 and 3.x
-				message = nonce + self.hmac_key + url.encode('ascii')
-				if params_encoded:
-					message += str(params_encoded).encode('ascii')
-				signature = hmac_lib.new(self.hmac_secret, msg=message, digestmod=hashlib.sha256).hexdigest().upper()
+				if self.hmac_key:
+					message = nonce + self.hmac_key + url.encode('ascii')
+					if params_encoded:
+						message += str(params_encoded).encode('ascii')
+					signature = hmac_lib.new(self.hmac_secret, msg=message, digestmod=hashlib.sha256).hexdigest().upper()
 
-				# Store signature and other stuff to headers
-				api_request.headers['Apiauth-Key'] = self.hmac_key
-				api_request.headers['Apiauth-Nonce'] = nonce
-				api_request.headers['Apiauth-Signature'] = signature
+					# Store signature and other stuff to headers
+					api_request.headers['Apiauth-Key'] = self.hmac_key
+					api_request.headers['Apiauth-Nonce'] = nonce
+					api_request.headers['Apiauth-Signature'] = signature
 
 				# Send request
-				session = requests.Session()
 				self.__last_response = session.send(api_request, stream=stream)
 
 				# If HMAC Nonce is already used, then wait a little and try again
 				try:
 					response_json = self.__last_response.json()
 					if response_json.get('error', {}).get('error_code') == '42':
-						time.sleep(0.1)
-						continue
-				except:
-					# No JSONic response, or interrupt, better just give up
-					pass
-		else:
-			# Prepare request based on method.
-			if method == 'POST':
-				api_request = requests.Request('POST', self.server + url, data=params, files=files).prepare()
-				
-			# GET method
-			else:
-				api_request = requests.Request('GET', self.server + url, params=params).prepare()
-				
-			# Send request
-			session = requests.Session()
-			self.__last_response = session.send(api_request, stream=stream)
+						time.sleep(0.1); continue
+					if 'data' in response_json: break
+				except: retry -= 1
 		
-		if all_pages:
-			if 'pagination' in self.__last_response:
-				page = self.__last_response.get('pagination', {})
-				page = page.get('next', None)
-				if page != None:
-					params = parse_qs(page.query)
+			if all_pages:
+				page_list = list()
+				page_list.append(self.__last_response)
+				last = self.__last_response.json()
+				while 'pagination' in last:
+					page = last.get('pagination', {})
+					page = page.get('next', None)
+					if page == None: break
+					if method == 'POST': api_request = requests.Request('POST', page).prepare()
+					else: api_request = requests.Request('GET', page).prepare()
+					self.__last_response = session.send(api_request, stream=stream)
+					page_list.append(self.__last_response)
+				return page_list
 			
 		return self.__last_response
 
