@@ -4,10 +4,10 @@ import requests
 import time
 try:
 	# Python 3.x
-	from urllib.parse import urlparse
+	from urllib.parse import urlparse, parse_qs
 except ImportError:
 	# Python 2.7
-	from urlparse import urlparse
+	from urlparse import urlparse, parse_qs
 
 
 def oauth2(access_token, client_id, client_secret=None, refresh_token=None, server='https://localbitcoins.com'):
@@ -26,6 +26,7 @@ class Connection():
 
 	def __init__(self):
 		self.server = None
+		self.__last_response = dict()
 
 		# OAuth2 stuff
 		self.client_id = None
@@ -38,7 +39,7 @@ class Connection():
 		self.hmac_key = None
 		self.hmac_secret = None
 
-	def call(self, method, url, params=None, stream=False, files=None):
+	def call(self, method, url, params=None, stream=False, files=None, all_pages=False):
 		method = method.upper()
 		if method not in ['GET', 'POST']:
 			raise Exception(u'Invalid method {}!'.format(method))
@@ -71,9 +72,9 @@ class Connection():
 			}
 
 			if method == 'GET':
-				return requests.get(self.server + url, params=params, headers=headers, stream=stream)
+				self.__last_response = requests.get(self.server + url, params=params, headers=headers, stream=stream)
 			else:
-				return requests.post(self.server + url, data=params, headers=headers, stream=stream, files=files)
+				self.__last_response = requests.post(self.server + url, data=params, headers=headers, stream=stream, files=files)
 
 		# If HMAC
 		elif self.hmac_key:
@@ -108,19 +109,17 @@ class Connection():
 
 				# Send request
 				session = requests.Session()
-				response = session.send(api_request, stream=stream)
+				self.__last_response = session.send(api_request, stream=stream)
 
 				# If HMAC Nonce is already used, then wait a little and try again
 				try:
-					response_json = response.json()
+					response_json = self.__last_response.json()
 					if response_json.get('error', {}).get('error_code') == '42':
 						time.sleep(0.1)
 						continue
 				except:
 					# No JSONic response, or interrupt, better just give up
 					pass
-
-				return response
 		else:
 			# Prepare request based on method.
 			if method == 'POST':
@@ -132,9 +131,16 @@ class Connection():
 				
 			# Send request
 			session = requests.Session()
-			response = session.send(api_request, stream=stream)
+			self.__last_response = session.send(api_request, stream=stream)
+		
+		if all_pages:
+			if 'pagination' in self.__last_response:
+				page = self.__last_response.get('pagination', {})
+				page = page.get('next', None)
+				if page != None:
+					params = parse_qs(page.query)
 			
-			return response
+		return self.__last_response
 
 	def get_access_token(self):
 		return self.access_token

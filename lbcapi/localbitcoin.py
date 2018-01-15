@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Marco Borges'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 from .api import hmac, Connection
 
@@ -82,7 +82,7 @@ class LocalBitcoin(object):
 		outgoing = float(dat['data']['outgoing_fee'])
 		return (deposit, outgoing)
 	
-	def payment_methods(self):
+	def payment_methods(self, country_code=''):
 		"""Returns a list of valid payment methods. Also contains name and code for payment methods,
 		and possible limitations in currencies and bank name choices. You can filtered by countrycodes."""
 		if len(self.pm) == 0:
@@ -90,7 +90,19 @@ class LocalBitcoin(object):
 			for k, v in pm['data']['methods'].items():
 				p = Payment(v['code'], v['name'], v['currencies'])
 				self.pm.append(p)
+		if len(country_code) > 0 and country_code in self.country_codes():
+			pm = self.conn.call('GET', '/api/payment_methods/?countrycode=%s' % country_code).json()
+			m = list()
+			for k, v in pm['data']['methods'].items():
+				m.append(v['code'])
+			return m
 		return [k.code for k in self.pm]
+	
+	def sell_online(self, payment_method=None, currency=None, country_code=None):
+		if payment_method == None and currency == None and country_code == None:
+			sell_list = list()
+			sell = self.conn.call('GET', '/sell-bitcoins-online/.json', all_pages=True).json()
+			
 	
 	def wallet(self):
 		"""Returns wallet balance and sendable BTC values."""
