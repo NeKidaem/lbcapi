@@ -2,6 +2,8 @@
 __author__ = 'Marco Borges'
 __version__ = '0.0.1'
 
+#TODO: check if special characters are working and add remaining countries
+
 COUNTRY_MAP = dict(AF='Afghanistan', AL='Albania', DZ='Algeria', AS='American_Samoa', AD='Andorra', AO='Angola',
                    AI='Anguilla', AQ='Antarctica', AG='Antigua_and_Barbuda', AR='Argentina', AM='Armenia', AW='Aruba',
                    AU='Australia', AT='Austria', AZ='Azerbaijan', BS='Bahamas', BH='Bahrain', BD='Bangladesh',
