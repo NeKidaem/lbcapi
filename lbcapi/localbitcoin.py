@@ -91,7 +91,7 @@ class LocalBitcoin(object):
 				p = Payment(v['code'], v['name'], v['currencies'])
 				self.pm.append(p)
 		if len(country_code) > 0 and country_code in self.country_codes():
-			pm = self.conn.call('GET', '/api/payment_methods/?countrycode=%s' % country_code).json()
+			pm = self.conn.call('GET', '/api/payment_methods/' , params={'countrycode': country_code}).json()
 			m = list()
 			for k, v in pm['data']['methods'].items():
 				m.append(v['code'])
@@ -104,6 +104,14 @@ class LocalBitcoin(object):
 			sell = self.conn.call('GET', '/sell-bitcoins-online/.json', all_pages=True).json()
 			
 	
+	def tickers(self, ticker=None):
+		"""Returns a ticker-tape like list of all completed trades."""
+		tk = self.conn.call('GET', '/bitcoinaverage/ticker-all-currencies/').json()
+		if ticker != None and ticker in self.currencies():
+			return tk[ticker]
+		return tk
+		
+	
 	def wallet(self):
 		"""Returns wallet balance and sendable BTC values."""
 		dat = self.conn.call('GET', '/api/wallet/').json()
@@ -115,3 +123,21 @@ class LocalBitcoin(object):
 		"""Returns dict with wallet datailed info."""
 		dat = self.conn.call('GET', '/api/wallet/').json()
 		return dat['data']
+
+# /buy-bitcoins-with-cash/{location_id}/{location_slug}/.json
+# /sell-bitcoins-for-cash/{location_id}/{location_slug}/.json
+# /buy-bitcoins-online/{countrycode:2}/{country_name}/{payment_method}/.json
+# /buy-bitcoins-online/{countrycode:2}/{country_name}/.json
+# /buy-bitcoins-online/{currency:3}/{payment_method}/.json
+# /buy-bitcoins-online/{currency:3}/.json
+# /buy-bitcoins-online/{payment_method}/.json
+# /buy-bitcoins-online/.json
+# /sell-bitcoins-online/{countrycode:2}/{country_name}/{payment_method}/.json
+# /sell-bitcoins-online/{countrycode:2}/{country_name}/.json
+# /sell-bitcoins-online/{currency:3}/{payment_method}/.json
+# /sell-bitcoins-online/{currency:3}/.json
+# /sell-bitcoins-online/{payment_method}/.json
+# /sell-bitcoins-online/.json
+
+# /bitcoincharts/{currency}/trades.json
+# /bitcoincharts/{currency}/orderbook.json
