@@ -82,6 +82,15 @@ class LocalBitcoin(object):
 		outgoing = float(dat['data']['outgoing_fee'])
 		return (deposit, outgoing)
 	
+	def orders(self, currency='USD'):
+		"""Return tuple with Bids and Asks of LocalBitcoin online advertisements.
+		Amount is the maximum amount available for the trade request.
+		Price is the hourly updated price.
+		The price is based on the price equation and commission % entered by the ad author."""
+		if currency not in self.currencies(): raise Exception('Currency not contemplated by LocalBitcoin API!')
+		od = self.conn.call('GET', '/bitcoincharts/%s/orderbook.json' % currency).json()
+		return (od['bids'], od['asks'])
+	
 	def payment_methods(self, country_code=''):
 		"""Returns a list of valid payment methods. Also contains name and code for payment methods,
 		and possible limitations in currencies and bank name choices. You can filtered by countrycodes."""
@@ -111,6 +120,14 @@ class LocalBitcoin(object):
 			return tk[ticker]
 		return tk
 		
+	def trades(self, currency='USD', last_tid=None):
+		"""All closed trades in online buy and online sell categories, updated every 15 minutes."""
+		if currency not in self.currencies(): raise Exception('Currency not contemplated by LocalBitcoin API!')
+		if last_tid == None:
+			td = self.conn.call('GET', '/bitcoincharts/%s/trades.json' % currency).json()
+		else:
+			td = self.conn.call('GET', '/bitcoincharts/%s/trades.json' % currency, params={'since': last_tid}).json()
+		return td
 	
 	def wallet(self):
 		"""Returns wallet balance and sendable BTC values."""
@@ -139,5 +156,4 @@ class LocalBitcoin(object):
 # /sell-bitcoins-online/{payment_method}/.json
 # /sell-bitcoins-online/.json
 
-# /bitcoincharts/{currency}/trades.json
 # /bitcoincharts/{currency}/orderbook.json
