@@ -116,7 +116,7 @@ class Connection():
 					response_json = self.__last_response.json()
 					if response_json.get('error', {}).get('error_code') == '42':
 						time.sleep(0.1); continue
-					if 'data' in response_json: break
+					if 'data' in response_json or len(response_json) > 0: break
 				except: retry -= 1
 		
 			if all_pages:

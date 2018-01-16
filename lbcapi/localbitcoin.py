@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Marco Borges'
-__version__ = '0.0.2'
+__version__ = '0.0.4'
 
 from .api import hmac, Connection
+from .country_map import COUNTRY_MAP
 
 class Payment(object):
 	def __init__(self, code, name, currencies=None):
@@ -107,10 +108,38 @@ class LocalBitcoin(object):
 			return m
 		return [k.code for k in self.pm]
 	
-	def sell_online(self, payment_method=None, currency=None, country_code=None):
+	def online_buys(self, payment_method=None, currency=None, country_code=None):
+		"""This API returns buy Bitcoin online ads.
+		It is closely modeled after the online ad listings on LocalBitcoins.com.
+		It occupies the same URLs with .json appended.
+		ds are returned in the same structure as ads method."""
+		buy = None
+		if payment_method != None and currency != None and country_code != None:
+			if country_code not in self.country_codes() or \
+				payment_method not in self.payment_methods() or \
+					country_code not in self.country_codes(): raise Exception('Input error!')
+			buy = self.conn.call('GET',
+			        '/buy-bitcoins-online/%s/%s/%s/.json' %
+			        (country_code, COUNTRY_MAP[country_code], payment_method)).json()
+		return buy
+	
+	def online_sells(self, payment_method=None, currency=None, country_code=None):
+		"""This API look up sell Bitcoin online ads.
+		It is closely modeled after the online ad listings on LocalBitcoins.com.
+		It occupies the same URLs with .json appended.
+		Ads are returned in the same structure as ads method."""
+		sell = None
+		if payment_method != None and currency != None and country_code != None:
+			if country_code not in self.country_codes() or \
+				payment_method not in self.payment_methods() or \
+					country_code not in self.country_codes(): raise Exception('Input error!')
+			sell = self.conn.call('GET',
+			        '/sell-bitcoins-online/%s/%s/%s/.json' %
+			        (country_code, COUNTRY_MAP[country_code], payment_method), all_pages=True).json()
 		if payment_method == None and currency == None and country_code == None:
 			sell_list = list()
 			sell = self.conn.call('GET', '/sell-bitcoins-online/.json', all_pages=True).json()
+		return sell
 			
 	
 	def tickers(self, ticker=None):
@@ -140,20 +169,20 @@ class LocalBitcoin(object):
 		"""Returns dict with wallet datailed info."""
 		dat = self.conn.call('GET', '/api/wallet/').json()
 		return dat['data']
+	
+	#TODO: implement buy and sell bitcoins-with-cash
 
-# /buy-bitcoins-with-cash/{location_id}/{location_slug}/.json
-# /sell-bitcoins-for-cash/{location_id}/{location_slug}/.json
 # /buy-bitcoins-online/{countrycode:2}/{country_name}/{payment_method}/.json
 # /buy-bitcoins-online/{countrycode:2}/{country_name}/.json
 # /buy-bitcoins-online/{currency:3}/{payment_method}/.json
 # /buy-bitcoins-online/{currency:3}/.json
 # /buy-bitcoins-online/{payment_method}/.json
 # /buy-bitcoins-online/.json
+
+
 # /sell-bitcoins-online/{countrycode:2}/{country_name}/{payment_method}/.json
 # /sell-bitcoins-online/{countrycode:2}/{country_name}/.json
 # /sell-bitcoins-online/{currency:3}/{payment_method}/.json
 # /sell-bitcoins-online/{currency:3}/.json
 # /sell-bitcoins-online/{payment_method}/.json
 # /sell-bitcoins-online/.json
-
-# /bitcoincharts/{currency}/orderbook.json
