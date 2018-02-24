@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Marco Borges'
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 from .api import hmac, Connection
 from .country_map import COUNTRY_MAP
@@ -108,27 +108,35 @@ class LocalBitcoin(object):
 			return m
 		return [str(k) for k in self.pm]
 	
-	def online_buys(self, payment_method=None, currency=None, country_code=None):
+	def online_buys(self, payment_method=None, currency=None, country_code=None) -> list:
 		"""This API returns buy Bitcoin online ads.
 		It is closely modeled after the online ad listings on LocalBitcoins.com.
 		It occupies the same URLs with .json appended.
 		ds are returned in the same structure as ads method."""
-		buy = None
+		buy = list()
 		if payment_method != None and currency != None and country_code != None:
 			if country_code not in self.country_codes() or \
 				payment_method not in self.payment_methods() or \
 					country_code not in self.country_codes(): raise Exception('Input error!')
-			buy = self.conn.call('GET',
+			buy_list = self.conn.call('GET',
 			        '/buy-bitcoins-online/%s/%s/%s/.json' %
-			        (country_code, COUNTRY_MAP[country_code], payment_method)).json()
+                   (country_code, COUNTRY_MAP[country_code], payment_method), all_pages=True)
+			for b in buy_list:
+				d = b.json()
+				buy.extend(d['data']['ad_list'])
+		if payment_method == None and currency == None and country_code == None:
+			buy_list = self.conn.call('GET', '/buy-bitcoins-online/.json', all_pages=True)
+			for b in buy_list:
+				d = b.json()
+				buy.extend(d['data']['ad_list'])
 		return buy
 	
-	def online_sells(self, payment_method=None, currency=None, country_code=None):
+	def online_sells(self, payment_method=None, currency=None, country_code=None) -> list:
 		"""This API look up sell Bitcoin online ads.
 		It is closely modeled after the online ad listings on LocalBitcoins.com.
 		It occupies the same URLs with .json appended.
 		Ads are returned in the same structure as ads method."""
-		sell = None
+		sell = list()
 		if payment_method != None and country_code != None:
 			if country_code not in self.country_codes() or \
 				payment_method not in self.payment_methods() or \
@@ -136,13 +144,11 @@ class LocalBitcoin(object):
 			sell_list = self.conn.call('GET',
 			        '/sell-bitcoins-online/%s/%s/%s/.json' %
 			        (country_code, COUNTRY_MAP[country_code], payment_method), all_pages=True)
-			sell = list()
 			for s in sell_list:
 				d = s.json()
 				sell.extend(d['data']['ad_list'])
 		if payment_method == None and currency == None and country_code == None:
-			sell_list = self.conn.call('GET', '/sell-bitcoins-online/.json', all_pages=True).json()
-			sell = list()
+			sell_list = self.conn.call('GET', '/sell-bitcoins-online/.json', all_pages=True)
 			for s in sell_list:
 				d = s.json()
 				sell.extend(d['data']['ad_list'])
