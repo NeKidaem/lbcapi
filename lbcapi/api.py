@@ -39,7 +39,7 @@ class Connection():
 		self.hmac_key = None
 		self.hmac_secret = None
 
-	def call(self, method, url, params=None, stream=False, files=None, retry=10, all_pages=False):
+	def call(self, method, url, params=None, stream=False, files=None, retry=10, all_pages=False, timeout=60):
 		method = method.upper()
 		if method not in ['GET', 'POST']:
 			raise Exception(u'Invalid method {}!'.format(method))
@@ -120,10 +120,11 @@ class Connection():
 				except: retry -= 1
 		
 			if all_pages:
+				start_time = time.time()
 				page_list = list()
 				page_list.append(self.__last_response)
 				last = self.__last_response.json()
-				while 'pagination' in last:
+				while 'pagination' in last and time.time() < start_time + timeout:
 					page = last.get('pagination', {})
 					page = page.get('next', None)
 					if page == None: break
